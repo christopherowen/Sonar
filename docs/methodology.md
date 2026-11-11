@@ -264,6 +264,7 @@ and the load gauges. Use it beside production traffic, or around another load ge
 
 A suite is data with a digest, and a changed suite is a new suite: `compare` and `table` refuse
 runs of different digests, so a number never silently changes meaning. A result names its
-schema; Sonar reads its predecessor's names (`servebench/1` and the rest) as the same formats.
+schema; a caller's own earlier names for these formats compare as Sonar's once mapped to them
+(`SONAR_SCHEMA_ALIASES`).
 The stream collector's rule for which chunks count as output can be switched back to the
 earlier text-chunk rule (`SONAR_STREAM_COLLECTOR=text-chunks`) to compare with records it wrote.

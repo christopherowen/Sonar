@@ -107,6 +107,8 @@ example, goes in `--extra-body` (or the matrix's `--reasoning-off`).
 
 - `SONAR_STREAM_COLLECTOR`: `current` (default) or `text-chunks`, the earlier rule for which
   streamed chunks count as output; select it to compare with records that rule wrote.
+- `SONAR_SCHEMA_ALIASES`: a JSON object mapping other schema names to Sonar's, so records
+  written under them compare with Sonar's.
 - `SONAR_MODEL_CONTRACT` and `SONAR_MODEL_CONTRACT_SHA256`: an opt-in model barrier for
   `suite` (a frozen contract binding the suite and two saved reference results; the suite
   stops before timing when the model step's result differs). See `sonar/model_evidence.py`.
@@ -114,9 +116,10 @@ example, goes in `--extra-body` (or the matrix's `--reasoning-off`).
 ## Results
 
 Results are JSON (`.gz` to compress): `sonar-run/1`, `sonar-engine/1`, `sonar-model/1`,
-`sonar-prefill/1`, `sonar-stall/1` and `sonar-suite/1`. Sonar began as `servebench`, and
-reads results recorded under its names (`servebench/1`, `servebench-engine/1`, ...) as the
-same formats, so earlier records compare with new runs.
+`sonar-prefill/1`, `sonar-stall/1` and `sonar-suite/1`. A caller whose records name these
+formats otherwise (an earlier client's) maps those names to Sonar's
+(`sonar.add_schema_aliases`, or `SONAR_SCHEMA_ALIASES`, a JSON object, for child processes), so
+its records compare with new runs.
 
 ## Tests
 

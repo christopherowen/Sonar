@@ -9,7 +9,9 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
+import sonar
 from sonar import __main__ as cli, canonical, kind, suite, verdict
 from tests import test_sonar as fakes
 
@@ -130,11 +132,35 @@ class AveragingTest(unittest.TestCase):
 
 
 class SchemaNameTest(unittest.TestCase):
-    def test_legacy_names_map_to_current_kinds(self):
-        self.assertEqual(canonical("servebench/1"), "sonar-run/1")
-        self.assertEqual(kind("servebench-engine/1"), "engine")
+    ALIASES = {"oldbench/1": "sonar-run/1", "oldbench-engine/1": "sonar-engine/1"}
+
+    def setUp(self):
+        saved = dict(sonar._ALIASES)
+        self.addCleanup(lambda: (sonar._ALIASES.clear(), sonar._ALIASES.update(saved)))
+        env = mock.patch.dict(os.environ)
+        env.start()
+        self.addCleanup(env.stop)
+        os.environ.pop(sonar.SCHEMA_ALIASES_ENV, None)
+
+    def test_sonar_names_no_other_tool(self):
+        self.assertEqual(sonar.schema_aliases(), {})
         self.assertEqual(kind("sonar-model/1"), "model")
+        self.assertIsNone(kind("oldbench/1"))
+
+    def test_a_callers_aliases_map_to_sonar_kinds(self):
+        sonar.add_schema_aliases(self.ALIASES)
+        self.assertEqual(canonical("oldbench/1"), "sonar-run/1")
+        self.assertEqual(kind("oldbench-engine/1"), "engine")
         self.assertIsNone(kind("something-else/1"))
+        with self.assertRaises(ValueError):
+            sonar.add_schema_aliases({"x/1": "not-a-sonar-schema/1"})
+
+    def test_aliases_reach_child_processes_through_the_environment(self):
+        os.environ[sonar.SCHEMA_ALIASES_ENV] = json.dumps(self.ALIASES)
+        self.assertEqual(kind("oldbench/1"), "run")
+        os.environ[sonar.SCHEMA_ALIASES_ENV] = '{"x/1": "y"}'
+        with self.assertRaises(ValueError):
+            kind("x/1")
 
     def test_a_recorded_result_compares_with_a_new_one(self):
         def run(batches):
@@ -143,7 +169,8 @@ class SchemaNameTest(unittest.TestCase):
                     "summary": {"output_tps": stats.describe(batches) | {"batches": batches},
                                 "latency": {"ttft_s": {"p50": 0.5}, "tpot_ms": {"p50": 60.0},
                                             "per_user_tps": {"p50": 16.0}}}}
-        recorded = dict(run([100, 101, 99, 100]), schema="servebench/1")
+        sonar.add_schema_aliases(self.ALIASES)
+        recorded = dict(run([100, 101, 99, 100]), schema="oldbench/1")
         schema, result = cli.compare_results(recorded, run([110, 111, 109, 110]), 3.0)
         self.assertEqual(schema, "sonar-run/1")
         self.assertEqual({row["metric"]: row["verdict"] for row in result["rows"]}["output tok/s"], "better")
