@@ -1,0 +1,35 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Unit tests (standard library only)
+        run: python -m unittest discover -s tests -t .
+      - name: Unit tests with the JSON Schema validator
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install --quiet --require-hashes -r requirements/jsonschema.txt
+          .venv/bin/python -m unittest discover -s tests -t .
+      - name: Command line
+        run: |
+          python -m sonar --version
+          python -m sonar suites
+          python -m pip install --quiet .
+          sonar --help >/dev/null

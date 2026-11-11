@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+.venv/
+# Measurement output belongs to whoever ran it, not to this repository.
+results/
+matrix-*/

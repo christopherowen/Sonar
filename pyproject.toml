@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sonar-bench"
+version = "1.0.0"
+description = "Steady-state load, engine and model-behaviour measurements for OpenAI-compatible LLM servers, with paired, boot-aware verdicts"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+# The matrix's JSON decode cases and compliance suite validate outputs against JSON Schema.
+jsonschema = ["jsonschema>=4.10"]
+
+[project.scripts]
+sonar = "sonar.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["sonar*"]
+
+[tool.setuptools.package-data]
+sonar = ["suites/*.json"]

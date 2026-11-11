@@ -1,0 +1,13 @@
+{
+ "name": "standard",
+ "version": 1,
+ "description": "About 40 minutes a build: model behaviour on 128 prompts first (it also heat-soaks the hardware), closed loops at 1, 4 and 16 streams (60 s warm-up, 300 s measured, a paired decode verdict each), cold real-text prefill at 8K, 32K and 128K, and decode stalls of four streams during a 32K prefill. No engine grid: it needs a server that times its own steps.",
+ "steps": [
+  {"id": "model", "command": "model", "args": {"limit": 128, "concurrency": 8, "max_tokens": 256, "top": 20}},
+  {"id": "c1", "command": "run", "args": {"mode": "closed", "concurrency": 1, "warmup": 60, "duration": 300}},
+  {"id": "c4", "command": "run", "args": {"mode": "closed", "concurrency": 4, "warmup": 60, "duration": 300}},
+  {"id": "c16", "command": "run", "args": {"mode": "closed", "concurrency": 16, "warmup": 60, "duration": 300}},
+  {"id": "prefill", "command": "prefill", "args": {"sizes": [8192, 32768, 131072], "repeats": 3}},
+  {"id": "stall", "command": "stall", "args": {"sizes": [32768], "streams": 4, "repeats": 3}}
+ ]
+}

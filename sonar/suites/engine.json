@@ -1,0 +1,11 @@
+{
+ "name": "engine",
+ "version": 1,
+ "description": "About 25 minutes a build, for kernel and engine changes: model behaviour on 128 prompts first, the engine cost grid (100 replays; needs a server that exposes engine_grid to its dev-mode collective RPC), sixteen streams in a closed loop, and cold real-text prefill at 32K and 128K.",
+ "steps": [
+  {"id": "model", "command": "model", "args": {"limit": 128, "concurrency": 16, "max_tokens": 256, "top": 20}},
+  {"id": "grid", "command": "engine", "args": {"replays": 100, "settle": 1}},
+  {"id": "c16", "command": "run", "args": {"mode": "closed", "concurrency": 16, "warmup": 60, "duration": 300}},
+  {"id": "prefill", "command": "prefill", "args": {"sizes": [32768, 131072], "repeats": 3}}
+ ]
+}
