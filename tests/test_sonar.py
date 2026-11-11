@@ -240,6 +240,19 @@ class StatsTest(unittest.TestCase):
         self.assertEqual((dropped, max(kept)), (2, 21.6))
         self.assertEqual(stats.trim_slow([1.0, 1.0, 1.0, 1.0, 1.0, 2.0])[1], 0)  # no spread: keep all
 
+    def test_trim_stall_tail_eliminates_bimodal_mad_cliff(self):
+        fast = [26.12 + 0.01 * (i % 4) for i in range(48)]
+        boot1 = fast + [26.18, 26.19, 26.20, 26.20] + [27.15 for _ in range(48)]
+        boot2 = fast + [27.15 for _ in range(52)]
+        old1, d_old1 = stats.trim_slow(boot1)
+        old2, d_old2 = stats.trim_slow(boot2)
+        self.assertGreater(abs(d_old1 - d_old2), 40)
+        self.assertGreater(abs(statistics.fmean(old2) - statistics.fmean(old1)), 0.40)
+        k1, d1 = stats.trim_stall_tail(boot1)
+        k2, d2 = stats.trim_stall_tail(boot2)
+        self.assertEqual((d1, d2), (25, 25))
+        self.assertLess(abs(statistics.fmean(k2) - statistics.fmean(k1)), 0.06)
+
     def test_median_interval_is_exact(self):
         ten = stats.median_interval(list(range(10, 0, -1)))
         # Ten values: the 2nd and 9th order statistics cover 1 - 2 * 11/1024.

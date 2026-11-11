@@ -28,7 +28,16 @@ def document(base_url: str, model: str, size: int, seed: int, vllm: bool) -> tup
 
 
 def run(base_url: str, model: str, sizes: list[int], *, repeats: int = 3, vllm: bool = True,
-        extra_body: dict | None = None, log=lambda message: None) -> list[dict]:
+        warmup: bool = True, extra_body: dict | None = None, log=lambda message: None) -> list[dict]:
+    if warmup and sizes:
+        warm_size = min(sizes[0], 32768)
+        text, _ = document(base_url, model, warm_size, seed=999_999, vllm=vllm)
+        warm_body = {"model": model, "messages": [{"role": "user", "content": f"{text}\n\n{QUESTION}"}],
+                     "max_tokens": 1, "temperature": 0}
+        if vllm:
+            warm_body["cache_salt"] = uuid.uuid4().hex
+        warm_body.update(extra_body or {})
+        client.stream_chat(base_url, warm_body, continuous_usage=vllm, timeout=max(900.0, warm_size / 500))
     samples = []
     for repeat in range(repeats):
         for index, size in enumerate(sizes):
