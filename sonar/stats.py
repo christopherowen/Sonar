@@ -73,6 +73,25 @@ def trim_slow(values: list[float], k: float = 5.0) -> tuple[list[float], int]:
     return kept, len(values) - len(kept)
 
 
+def trim_stall_tail(values: list[float], drop_fraction: float = 0.25,
+                    min_samples: int = 20, k: float = 5.0) -> tuple[list[float], int]:
+    """Drop a fixed upper stall fraction on large replay series (``len >= min_samples``),
+    falling back to ``trim_slow`` on smaller samples.
+
+    When periodic memory or SMMU stalls hit ~20-30% of replays, ``median + 5 * MAD`` sits
+    near its one-sided breakdown point, so a few extra stalls can flip a cell from dropping
+    every stall to keeping all samples; trimming the slowest ``drop_fraction`` symmetrically
+    on both runs avoids that threshold cliff."""
+    if len(values) < min_samples:
+        return trim_slow(values, k=k)
+    ordered = sorted(values)
+    drop = int(len(ordered) * drop_fraction)
+    if drop <= 0:
+        return ordered, 0
+    kept = ordered[:len(ordered) - drop]
+    return kept, drop
+
+
 def median_interval(values: list[float], confidence: float = 0.95) -> dict | None:
     """The median and its distribution-free interval: the order statistics k and n + 1 - k,
     where k is the deepest rank whose binomial (sign-test) tail stays within (1 - confidence) / 2.

@@ -123,8 +123,8 @@ def compare(base: dict, candidate: dict, *, tolerance_pct: float = 0.5, confiden
     family = 1 - (1 - confidence) / max(len(pairs), 1)
     rows, logs = [], []
     for other, row in pairs:
-        a, dropped_a = stats.trim_slow(other["samples"])
-        b, dropped_b = stats.trim_slow(row["samples"])
+        a, dropped_a = stats.trim_stall_tail(other["samples"])
+        b, dropped_b = stats.trim_stall_tail(row["samples"])
         test = stats.welch(a, b, confidence=family)
         if test is None:
             continue
@@ -142,18 +142,18 @@ def compare(base: dict, candidate: dict, *, tolerance_pct: float = 0.5, confiden
                      "change_pct": change, "ci95_pct": ci,
                      "verdict": stats.verdict(change, ci, False, tolerance_pct)})
     note = (f"intervals hold for all {len(pairs)} shapes at once ({100 * confidence:.0f}%, Bonferroni); "
-            f"slow outliers (median + 5 MAD) dropped first: {sum(r.get('trimmed', 0) for r in rows)}")
+            f"slow stall tail dropped first: {sum(r.get('trimmed', 0) for r in rows)}")
     return {"warnings": warnings, "rows": rows, "note": note}
 
 
 def boot_ratios(results: list[dict], reference: dict) -> list[float]:
     """Each grid's decode step time against ``reference``, as one geometric-mean ratio over
-    the shapes both have (slow outliers dropped first)."""
+    the shapes both have (slow stall tail dropped first)."""
     def means(run: dict) -> dict:
         out = {}
         for row in run["engine"]:
             if not row["shape"].get("prefill"):
-                kept, _ = stats.trim_slow(row["samples"])
+                kept, _ = stats.trim_stall_tail(row["samples"])
                 out[row["label"]] = sum(kept) / len(kept)
         return out
     base = means(reference)
